@@ -74,9 +74,15 @@ def create_atari_environment(game_name, sticky_actions=True):
   Returns:
     An Atari 2600 environment with some standard preprocessing.
   """
-  game_version = 'v0' if sticky_actions else 'v4'
-  full_game_name = '{}NoFrameskip-{}'.format(game_name, game_version)
-  env = gym.make(full_game_name)
+  def get_env_id(game_name, sticky_actions):
+      game_version = 'v0' if sticky_actions else 'v4'
+      full_game_name = '{}NoFrameskip-{}'.format(game_name, game_version)
+      return full_game_name
+
+  env_id = get_env_id(game_name, sticky_actions)
+  env = gym.make(env_id)
+  # logger.info('env_id {}'.format(env_id))
+
   # Strip out the TimeLimit wrapper from Gym, which caps us at 100k frames. We
   # handle this time limit internally instead, which lets us cap at 108k frames
   # (30 minutes). The TimeLimit wrapper also plays poorly with saving and
@@ -84,6 +90,8 @@ def create_atari_environment(game_name, sticky_actions=True):
   env = env.env
   env = preprocessing.AtariPreprocessing(env)
   return env
+
+
 
 
 @gin.configurable
@@ -158,7 +166,7 @@ class Runner(object):
     self._create_directories()
     self._summary_writer = tf.summary.FileWriter(self._base_dir)
 
-    self._environment = create_environment_fn(game_name, sticky_actions)
+    self._environment = create_environment_fn(game_name, sticky_actions=sticky_actions)
     # Set up a session and initialize variables.
     self._sess = tf.Session('',
                             config=tf.ConfigProto(allow_soft_placement=True))

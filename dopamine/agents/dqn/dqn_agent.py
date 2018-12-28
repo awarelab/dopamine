@@ -23,13 +23,13 @@ import math
 import os
 import random
 
-
-
 from dopamine.replay_memory import circular_replay_buffer
 import numpy as np
 import tensorflow as tf
 
 import gin.tf
+
+from polo_plus.logger import logger
 
 slim = tf.contrib.slim
 
@@ -402,13 +402,22 @@ class DQNAgent(object):
     """
     # Run a train op at the rate of self.update_period if enough training steps
     # have been run. This matches the Nature DQN behaviour.
+
+    if self.training_steps % 1000 == 0:
+      logger.debug('_train_step = {}'.format(self.training_steps))
+
     if self._replay.memory.add_count > self.min_replay_history:
       if self.training_steps % self.update_period == 0:
         self._sess.run(self._train_op)
+        logger.debug('Running _train_op')
+        logger.debug('summary_writter {} {} {}'.format(self.summary_writing_frequency,
+                                                      self.summary_writer,
+                                                      self.training_steps))
         if (self.summary_writer is not None and
             self.training_steps > 0 and
             self.training_steps % self.summary_writing_frequency == 0):
           summary = self._sess.run(self._merged_summaries)
+          logger.debug('add_summary! global_step = {}'.format(self.training_steps))
           self.summary_writer.add_summary(summary, self.training_steps)
 
       if self.training_steps % self.target_update_period == 0:
