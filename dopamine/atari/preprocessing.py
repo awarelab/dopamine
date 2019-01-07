@@ -81,7 +81,6 @@ class AtariPreprocessing(object):
         np.empty((obs_dims.shape[0], obs_dims.shape[1]), dtype=np.uint8)
     ]
 
-    self.game_over = False
     self.lives = 0  # Will need to be set by reset().
 
   @property
@@ -159,7 +158,7 @@ class AtariPreprocessing(object):
     for time_step in range(self.frame_skip):
       # We bypass the Gym observation altogether and directly fetch the
       # grayscale image from the ALE. This is a little faster.
-      _, reward, game_over, info = self.environment.step(action)
+      _, reward, game_over, info = self.environment._step(action)
       accumulated_reward += reward
 
       if self.terminal_on_life_loss:
@@ -178,9 +177,8 @@ class AtariPreprocessing(object):
 
     # Pool the last two observations.
     observation = self._pool_and_resize()
-
-    self.game_over = game_over
-    return observation, accumulated_reward, is_terminal, info
+    info['is_terminal'] = is_terminal
+    return observation, accumulated_reward, game_over, info
 
   def _fetch_grayscale_observation(self, output):
     """Returns the current observation in grayscale.

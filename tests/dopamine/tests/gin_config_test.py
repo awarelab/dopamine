@@ -21,6 +21,9 @@ import shutil
 
 
 from absl import flags
+
+import dopamine.atari.runner
+import dopamine.atari.train_runner
 from dopamine.atari import run_experiment
 from dopamine.atari import train
 import tensorflow as tf
@@ -54,7 +57,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedReplayBuffer.replay_capacity = 100'  # To prevent OOM.
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertIsInstance(runner._agent.optimizer, tf.train.RMSPropOptimizer)
     self.assertNear(0.00025, runner._agent.optimizer._learning_rate, 0.0001)
     shutil.rmtree(FLAGS.base_dir)
@@ -71,7 +74,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedReplayBuffer.replay_capacity = 100'  # To prevent OOM.
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.TrainRunner(create_agent_fn=train.create_agent)
+    runner = dopamine.atari.train_runner.TrainRunner(create_agent_fn=train.create_agent)
     self.assertEqual(runner._base_dir, FLAGS.base_dir)
     self.assertEqual(runner._log_every_n, 1729)
     shutil.rmtree(FLAGS.base_dir)
@@ -88,7 +91,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedReplayBuffer.replay_capacity = 100'  # To prevent OOM.
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertIsInstance(runner._agent.optimizer, tf.train.RMSPropOptimizer)
     self.assertEqual(100, runner._agent.optimizer._learning_rate)
     shutil.rmtree(FLAGS.base_dir)
@@ -106,7 +109,7 @@ class GinConfigTest(tf.test.TestCase):
     ]
 
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertIsInstance(runner._agent.optimizer, tf.train.AdamOptimizer)
     self.assertEqual(100, runner._agent.optimizer._lr)
     shutil.rmtree(FLAGS.base_dir)
@@ -123,7 +126,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedReplayBuffer.replay_capacity = 100'  # To prevent OOM.
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertIsInstance(runner._agent.optimizer, tf.train.AdamOptimizer)
     self.assertNear(0.0000625, runner._agent.optimizer._lr, 0.0001)
     shutil.rmtree(FLAGS.base_dir)
@@ -142,7 +145,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedReplayBuffer.replay_capacity = 100'  # To prevent OOM.
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertIsInstance(runner._agent.optimizer, tf.train.RMSPropOptimizer)
     self.assertEqual(100, runner._agent.optimizer._learning_rate)
     shutil.rmtree(FLAGS.base_dir)
@@ -225,7 +228,7 @@ class GinConfigTest(tf.test.TestCase):
         'Runner.num_iterations=0',
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertEqual(1000000, runner._agent._replay.memory._replay_capacity)
     shutil.rmtree(FLAGS.base_dir)
 
@@ -244,7 +247,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedPrioritizedReplayBuffer.replay_capacity = 1000',
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertEqual(1000, runner._agent._replay.memory._replay_capacity)
     shutil.rmtree(FLAGS.base_dir)
 
@@ -263,7 +266,7 @@ class GinConfigTest(tf.test.TestCase):
         'WrappedPrioritizedReplayBuffer.replay_capacity = 1000',
     ]
     run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
-    runner = run_experiment.Runner(FLAGS.base_dir, train.create_agent)
+    runner = dopamine.atari.runner.Runner(FLAGS.base_dir, train.create_agent)
     self.assertEqual(1000, runner._agent._replay.memory._replay_capacity)
     shutil.rmtree(FLAGS.base_dir)
 

@@ -24,6 +24,9 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
+
+import dopamine.atari.runner
+import dopamine.atari.train_runner
 from dopamine.agents.dqn import dqn_agent
 from dopamine.agents.implicit_quantile import implicit_quantile_agent
 from dopamine.agents.rainbow import rainbow_agent
@@ -108,10 +111,10 @@ def create_runner(base_dir, create_agent_fn):
   assert base_dir is not None
   # Continuously runs training and evaluation until max num_iterations is hit.
   if FLAGS.schedule == 'continuous_train_and_eval':
-    return run_experiment.Runner(base_dir, create_agent_fn)
+    return dopamine.atari.runner.Runner(base_dir, create_agent_fn)
   # Continuously runs training until max num_iterations is hit.
   elif FLAGS.schedule == 'continuous_train':
-    return run_experiment.TrainRunner(base_dir, create_agent_fn)
+    return dopamine.atari.train_runner.TrainRunner(base_dir, create_agent_fn)
   else:
     raise ValueError('Unknown schedule: {}'.format(FLAGS.schedule))
 

@@ -49,6 +49,6 @@ class GymPreprocessing(object):
     return self.environment.reset()
 
   def step(self, action):
-    observation, reward, game_over, info = self.environment.step(action)
+    observation, reward, game_over, info = self.environment._step(action)
     self.game_over = game_over
     return observation, reward, game_over, info

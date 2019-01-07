@@ -24,6 +24,8 @@ import shutil
 
 
 from absl import flags
+
+import dopamine.atari.runner
 from dopamine.atari import run_experiment
 from dopamine.common import checkpointer
 from dopamine.common import logger
@@ -122,8 +124,8 @@ class RunnerTest(tf.test.TestCase):
   def setUp(self):
     super(RunnerTest, self).setUp()
     self._agent = mock.Mock()
-    self._agent.begin_episode.side_effect = lambda x: 0
-    self._agent.step.side_effect = self._agent_step
+    self._agent._begin_episode.side_effect = lambda x: 0
+    self._agent._step.side_effect = self._agent_step
     self._create_agent_fn = lambda x, y, summary_writer: self._agent
     self._test_subdir = '/tmp/dopamine_tests'
     shutil.rmtree(self._test_subdir, ignore_errors=True)
@@ -131,7 +133,7 @@ class RunnerTest(tf.test.TestCase):
 
   def testFailsWithoutGameName(self):
     with self.assertRaises(AssertionError):
-      run_experiment.Runner(self._test_subdir, self._create_agent_fn)
+      dopamine.atari.runner.Runner(self._test_subdir, self._create_agent_fn)
 
   @mock.patch.object(checkpointer, 'get_latest_checkpoint_number')
   def testInitializeCheckpointingWithNoCheckpointFile(self, mock_get_latest):
@@ -139,8 +141,8 @@ class RunnerTest(tf.test.TestCase):
     base_dir = '/does/not/exist'
     with self.assertRaisesRegexp(tf.errors.PermissionDeniedError,
                                  '.*/does.*'):
-      run_experiment.Runner(base_dir, self._create_agent_fn,
-                            game_name='Pong')
+      dopamine.atari.runner.Runner(base_dir, self._create_agent_fn,
+                                   game_name='Pong')
 
   @mock.patch.object(checkpointer, 'get_latest_checkpoint_number')
   @mock.patch.object(checkpointer, 'Checkpointer')
@@ -156,10 +158,10 @@ class RunnerTest(tf.test.TestCase):
     agent.unbundle.return_value = False
     mock_logger = mock.Mock()
     mock_logger_constructor.return_value = mock_logger
-    runner = run_experiment.Runner(self._test_subdir,
-                                   lambda x, y, summary_writer: agent,
-                                   create_environment_fn=lambda x, y: x,
-                                   game_name='Test')
+    runner = dopamine.atari.runner.Runner(self._test_subdir,
+                                          lambda x, y, summary_writer: agent,
+                                          create_environment_fn=lambda x, y: x,
+                                          game_name='Test')
     self.assertEqual(0, runner._start_iteration)
     self.assertEqual(1, mock_checkpointer.load_checkpoint.call_count)
     self.assertEqual(1, agent.unbundle.call_count)
@@ -184,9 +186,9 @@ class RunnerTest(tf.test.TestCase):
     checkpoint.save_checkpoint(latest_checkpoint, checkpoint_data)
     mock_agent = mock.Mock()
     mock_agent.unbundle.return_value = True
-    runner = run_experiment.Runner(self._test_subdir,
-                                   lambda x, y, summary_writer: mock_agent,
-                                   game_name='Pong')
+    runner = dopamine.atari.runner.Runner(self._test_subdir,
+                                          lambda x, y, summary_writer: mock_agent,
+                                          game_name='Pong')
     expected_iteration = current_iteration + 1
     self.assertEqual(expected_iteration, runner._start_iteration)
     self.assertDictEqual(logs_data, runner._logger.data)
@@ -196,13 +198,13 @@ class RunnerTest(tf.test.TestCase):
   def testRunOneEpisode(self):
     max_steps_per_episode = 11
     environment = MockEnvironment()
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn, game_name='Test',
         create_environment_fn=lambda x, y: environment,
         max_steps_per_episode=max_steps_per_episode)
     step_number, total_reward = runner._run_one_episode()
-    self.assertEqual(self._agent.step.call_count, environment.max_steps - 1)
-    self.assertEqual(self._agent.end_episode.call_count, 1)
+    self.assertEqual(self._agent._step.call_count, environment.max_steps - 1)
+    self.assertEqual(self._agent._end_episode.call_count, 1)
     self.assertEqual(environment.max_steps, step_number)
     # Expected reward will be \sum_{i=0}^{9} (-1)**i * i = -5
     self.assertEqual(-5, total_reward)
@@ -210,13 +212,13 @@ class RunnerTest(tf.test.TestCase):
   def testRunOneEpisodeWithLowMaxSteps(self):
     max_steps_per_episode = 2
     environment = MockEnvironment()
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn, game_name='Test',
         create_environment_fn=lambda x, y: environment,
         max_steps_per_episode=max_steps_per_episode)
     step_number, total_reward = runner._run_one_episode()
-    self.assertEqual(self._agent.step.call_count, max_steps_per_episode - 1)
-    self.assertEqual(self._agent.end_episode.call_count, 1)
+    self.assertEqual(self._agent._step.call_count, max_steps_per_episode - 1)
+    self.assertEqual(self._agent._end_episode.call_count, 1)
     self.assertEqual(max_steps_per_episode, step_number)
     self.assertEqual(-1, total_reward)
 
@@ -225,14 +227,14 @@ class RunnerTest(tf.test.TestCase):
     environment_steps = 2
     environment = MockEnvironment(max_steps=environment_steps)
     statistics = []
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn, game_name='Test',
         create_environment_fn=lambda x, y: environment)
     step_number, sum_returns, num_episodes = runner._run_one_phase(
         max_steps, statistics, 'test')
     calls_to_run_episode = int(max_steps / environment_steps)
-    self.assertEqual(self._agent.step.call_count, calls_to_run_episode)
-    self.assertEqual(self._agent.end_episode.call_count, calls_to_run_episode)
+    self.assertEqual(self._agent._step.call_count, calls_to_run_episode)
+    self.assertEqual(self._agent._end_episode.call_count, calls_to_run_episode)
     self.assertEqual(max_steps, step_number)
     self.assertEqual(-1 * calls_to_run_episode, sum_returns)
     self.assertEqual(calls_to_run_episode, num_episodes)
@@ -251,7 +253,7 @@ class RunnerTest(tf.test.TestCase):
     environment = MockEnvironment(max_steps=environment_steps)
     training_steps = 20
     evaluation_steps = 10
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn, game_name='Test',
         create_environment_fn=lambda x, y: environment,
         training_steps=training_steps, evaluation_steps=evaluation_steps)
@@ -275,7 +277,7 @@ class RunnerTest(tf.test.TestCase):
     statistics = 'statistics'
     experiment_logger = MockLogger(test_cls=self)
     mock_logger_constructor.return_value = experiment_logger
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn,
         game_name='Test',
         create_environment_fn=lambda x, y: mock.Mock(),
@@ -307,7 +309,7 @@ class RunnerTest(tf.test.TestCase):
     logs_data = {'one': 1, 'two': 2}
     mock_logger = MockLogger(run_asserts=False, data=logs_data)
     mock_logger_constructor.return_value = mock_logger
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn,
         game_name='Test',
         create_environment_fn=lambda x, y: mock.Mock())
@@ -327,7 +329,7 @@ class RunnerTest(tf.test.TestCase):
     mock_logger_constructor.return_value = experiment_logger
     experiment_checkpointer = mock.Mock()
     mock_checkpointer_constructor.return_value = experiment_checkpointer
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn,
         game_name='Test',
         create_environment_fn=lambda x, y: mock.Mock(),
@@ -363,7 +365,7 @@ class RunnerTest(tf.test.TestCase):
     num_iterations = 10
     self._agent.unbundle.return_value = True
     end_iteration = start_iteration + num_iterations
-    runner = run_experiment.Runner(
+    runner = dopamine.atari.runner.Runner(
         self._test_subdir, self._create_agent_fn,
         game_name='Test',
         create_environment_fn=lambda x, y: environment,
